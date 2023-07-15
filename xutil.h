@@ -566,6 +566,8 @@ int xutil_delete_file(char *path)
 		return errno;
 	return 1;
 #elif defined XUTIL_WINDOWS
+	BOOL result = DeleteFileA(path);
+	return !!result;
 #endif
 }
 
@@ -613,6 +615,34 @@ int xutil_read_file(char *path, char **buf)
 	close(fd);
 	return 1;
 #elif defined XUTIL_WINDOWS
+	HANDLE fd = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (fd == INVALID_HANDLE_VALUE) {
+		return 0;
+	}
+
+	DWORD fileSize = GetFileSize(fd, NULL);
+	if (fileSize == INVALID_FILE_SIZE) {
+		CloseHandle(fd);
+		return 0;
+	}
+
+	BYTE* buffer = (BYTE*)malloc(fileSize);
+	if (buffer == NULL) {
+		CloseHandle(fd);
+		return 0;
+	}
+
+	DWORD bytesRead;
+	BOOL result = ReadFile(fd, buffer, fileSize, &bytesRead, NULL);
+	if (result == FALSE || bytesRead != fileSize) {
+		free(buffer);
+		CloseHandle(fd);
+		return 0;
+	}
+
+	*buf = buffer;
+	CloseHandle(fd);
 #endif
 }
 
