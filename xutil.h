@@ -527,6 +527,12 @@ int xutil_create_file(char *path)
 
 	return 1;
 #elif defined XUTIL_WINDOWS
+	HANDLE fd = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (fd != INVALID_HANDLE_VALUE) {
+		CloseHandle(fd);
+		return 1;
+	}
+	return 0;
 #endif
 }
 
