@@ -153,7 +153,7 @@ int xutil_is_debugger_attached(void);
 int xutil_restart(void);
 int xutil_poweroff(void);
 
-size_t xutil_get_thread_stack_size(void);
+int xutil_get_thread_stack_size(size_t *stack_size);
 unsigned long int xutil_get_thread_id(void);
 void xutil_init_threads(void);
 void xutil_deinit_threads(void);
@@ -387,6 +387,7 @@ int xutil_get_space_info(char *path, xspace_info *space)
 		space->available = (size_t)freeBytesAvailable.QuadPart;
 		space->capacity = (size_t)totalNumberOfBytes.QuadPart;
 		space->free = (size_t)totalNumberOfFreeBytes.QuadPart;
+		return 1;
 	}
 	else {
 		return 0;
@@ -478,7 +479,8 @@ int xutil_change_permission(char *path, xutil_perm perm)
 		return 1;
 	}
 #elif defined XUTIL_WINDOWS
-	/* UNIMPLEMENTED */
+	/* UNIMPLEMENTED UNTILL I FIGURE OUT A WAY TO USE WINAPI*/
+	return 0;
 #endif
 }
 
@@ -643,6 +645,7 @@ int xutil_read_file(char *path, char **buf)
 
 	*buf = buffer;
 	CloseHandle(fd);
+	return 1;
 #endif
 }
 
@@ -690,7 +693,7 @@ int xutil_restart(void)
 		return xutil_get_last_error();
 #elif defined XUTIL_WINDOWS
 
-	BOOL result = ExitWindowsEx(flags, EWX_REBOOT | SHTDN_REASON_MINOR_OTHER);
+	BOOL result = ExitWindowsEx(EWX_REBOOT,  SHTDN_REASON_MINOR_OTHER);
 	return !!result;
 #endif
 }
@@ -709,7 +712,7 @@ int xutil_poweroff(void)
 	else
 		return xutil_get_last_error();
 #elif defined XUTIL_WINDOWS
-	BOOL result = ExitWindowsEx(EWX_SHUTDOWN, SHTDN_REASON_MINOR_OTHER) != 0)
+	BOOL result = ExitWindowsEx(EWX_SHUTDOWN, SHTDN_REASON_MINOR_OTHER);
 	return !!result;
 #endif
 }
@@ -727,13 +730,27 @@ unsigned long int xutil_get_thread_id(void)
 #endif
 }
 
-size_t xutil_get_thread_stack_size(void)
+/**
+ * UNIX ONLY FUNCTION! This function does not exits on winapi, it states that:
+ * The default size for the reserved and initially committed stack memory is specified in the executable file header.
+ * As far as I can tell there is no way to get the default stack size for a thread, that is what you define it to be
+ * in the beggining, so on windows this function will allways return 0 and fail.
+ *
+ * @param {size_t*} stack_size: Pointer to data that will recieve stack size in bytes
+ * @return {int}: On success 1 is returned, otherwise 0 is returned
+ * 
+*/
+int xutil_get_thread_stack_size(size_t *stack_size)
 {
 #if defined XUTIL_UNIX
-	size_t stacksize;
-	pthread_attr_getstacksize (&attr, &stacksize);
-	return stacksize;
+	size_t tmp;
+	if (pthread_attr_getstacksize(&attr, &tmp) == 0) {
+		*stack_size = tmp;
+		return 1;
+	}
+	return 0;
 #elif defined XUTIL_WINDOWS
+	return 0;
 #endif
 }
 
