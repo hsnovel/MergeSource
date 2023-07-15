@@ -500,10 +500,7 @@ int xutil_create_directory(char *path)
 		return errno;
 #elif defined XUTIL_WINDOWS
 	BOOL result = CreateDirectoryA(path, NULL);
-	if (result == TRUE)
-		return 1;
-
-	return 0;
+	return !!result;
 #endif
 }
 
@@ -550,6 +547,8 @@ int xutil_delete_directory(char *path)
 		return errno;
 	return 1;
 #elif defined XUTIL_WINDOWS
+	BOOL result = RemoveDirectoryA(path);
+	return !!result;
 #endif
 }
 
