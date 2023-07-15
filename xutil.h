@@ -1,6 +1,14 @@
 #ifndef XUTIL_H
 #define XUTIL_H
 
+/*
+ * All defines that can be turned on or off:
+ * 
+ * XUTIL_IMPLEMENTATION
+ * XUTIL_WINDOWS_SUPRESS_LINK_ADVAPI_WARNING
+ * XUTIL_WINDOWS_ENABLE_LINK_ADVAPI
+*/
+
 /* OS FLAGS */
 #if defined(__WINDOWS__) || defined(__TOS_WIN__) || defined(__WIN32__) || defined(_WIN64) || defined(_WIN32) || defined(_WIN16)
 #define XUTIL_WINDOWS
@@ -184,14 +192,17 @@ void xutil_deinit_threads(void);
 
 #ifdef XUTIL_WINDOWS
 #include <windows.h>
-#include <AccCtrl.h>
-#include <AclAPI.h>
 
 #ifndef XUTIL_WINDOWS_DISABLE_PRAGMA_LINK
 #pragma comment(lib, "user32.lib")
+
+/* IF xutil_is_root IS NOT CALLED DO NOT DISABLE DEFINE THIS AS IT IS NOT USED IN OTHER FUNCTIONS */
+#if defined(XUTIL_WINDOWS_ENABLE_LINK_ADVAPI)
 #pragma comment(lib, "Advapi32.lib")
 #endif
-#endif
+
+#endif /* ifndef XUTIL_WINDOWS_DISABLE_LINK_ADVAPI */
+#endif /* XUTIL_WINDOWS*/
 
 /**
  * This function should be called as the first thing before calling any other
@@ -304,6 +315,11 @@ int xutil_is_root(void)
 	else
 		return 0;
 #elif defined XUTIL_WINDOWS
+/*
+ * XUTIL_WINDOWS_SUPRESS_LINK_ADVAPI_WARNING is added for those who do not want to link
+ * it with pragma statements and will to on build stage
+*/
+#if defined(XUTIL_WINDOWS_ENABLE_LINK_ADVAPI) || defined(XUTIL_WINDOWS_SUPRESS_LINK_ADVAPI_WARNING)
 	BOOL isroot = FALSE;
 	HANDLE tk = NULL;
 
@@ -321,6 +337,10 @@ int xutil_is_root(void)
 	}
 
 	return isroot;
+#else
+#pragma message("Please enable to link agains ADVAPI otherwise this function will not work");
+	return 0;
+#endif
 
 #endif
 }
