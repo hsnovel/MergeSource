@@ -60,7 +60,16 @@ typedef enum  {
 	XUTIL_ERROR_READING_FILE,
 	XUTIL_ERROR_GETTING_FILE_STATUS,
 	XUTIL_ERROR_ALLOCATING_SPACE,
+	XUTIL_ERROR_INVALID_PERM,
+	XUTIL_DIRECTORY_EXISTS,
+	__XUTIL_ERROR_LAST = 0,
 } xutil_error;
+
+typedef enum {
+	XUTIL_PERM_USER,
+	XUTIL_PERM_ROOT,
+	XUTIL_PERM_ONLY_OWNER_AND_ROOT,
+} xutil_perm;
 
 #define KILOBYTE(x) ((x) / 1024)
 #define MEGABYTE(x) ((x) / (1024 * 1024))
@@ -79,20 +88,21 @@ struct xutil_config {
 
 struct xutil_config xutil_config;
 
-void xutil_init_config();
+void xutil_init_config(void);
 void xutil_config_change_print_err_fd(FILE *fd);
 int  xutil_get_last_error();
 void xutil_print_error(int errcode);
 void xutil_print_last_error();
 void xutil_write_error(int errcode, char **buf);
 
+xutil_perm xutil_is_root(void);
 int xutil_get_num_cpu_core(void);
 int xutil_get_num_cpu_core_avail(void);
 xspace_info xutil_get_space_info(char *path);
 long xutil_get_avail_memory(void);
 long xutil_get_max_memory(void);
 
-int xutil_create_directory(char *path);
+int xutil_create_directory(char *path, xutil_perm perm);
 int xutil_create_file(char *path, char *name);
 
 int xutil_read_file(char *path, char **buf);
@@ -141,7 +151,7 @@ void xutil_deinit_threads(void);
  * from this initilization some do and if this is not called program will
  * probably segfault.
  */
-void xutil_init_config()
+void xutil_init_config(void)
 {
 	xutil_config.print_error_fd = stderr;
 }
@@ -234,6 +244,19 @@ void xutil_write_error(int errcode, char **buf)
 }
 
 /**
+ * Check if the program has root or admnisitration privilages.
+ *
+ * @return {enum xutil_perm}: Either XUTIL_PERM_USER or XUTIL_PERM_ROOT is returned
+ */
+xutil_perm xutil_is_root(void)
+{
+	if (geteuid() == 0)
+		return XUTIL_PERM_ROOT;
+	else
+		return XUTIL_PERM_USER;
+}
+
+/**
  * Get number of CPU cores configured by the operating system
  */
 int xutil_get_num_cpu_core(void)
@@ -313,13 +336,39 @@ long xutil_get_max_memory(void)
 #endif
 }
 
-int xutil_create_directory(char *path)
+/**
+ * Create directory with given permissions
+ *
+ * @return {int}: Errno is returned which can be printed with
+ * xutil_print_error(int error) or similar variants.
+ */
+int xutil_create_directory(char *path, xutil_perm perm)
 {
 #ifdef XUTIL_UNIX
 	struct stat st = {0};
 
 	if (stat(path, &st) == -1) {
-		mkdir(path, 0700);
+		if(perm == XUTIL_PERM_ONLY_OWNER_AND_ROOT) {
+			mkdir(path, 0700);
+			return 1;
+		}
+
+		mkdir(path, 0755);
+
+		if (perm == XUTIL_PERM_USER) {
+			return 1;
+		} else if (perm == XUTIL_PERM_ROOT) {
+			int err = chown(path, 0, 0);
+			if (err == -1) {
+				rmdir(path);
+				return errno;
+			}
+			else {
+				return 1;
+			}
+		} else {
+			return 0;
+		}
 	} else{
 		return errno;
 	}
