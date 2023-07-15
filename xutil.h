@@ -106,6 +106,9 @@ int xutil_change_permission(char *path, xutil_perm perm);
 int xutil_create_directory(char *path);
 int xutil_create_file(char *path);
 
+int xutil_delete_directory(char *path);
+int xutil_delete_file(char *path);
+
 int xutil_read_file(char *path, char **buf);
 int xutil_write_file(char *path, char *contents, int mode);
 
@@ -406,6 +409,13 @@ int xutil_create_directory(char *path)
 #endif
 }
 
+/**
+ * Create directory
+ *
+ * @param {char*} path: Path to create the directory, name of the directory is included to path
+ * @return {int}: On success 1 is returned, otherwise errno is returned which can be printed with
+ * xutil_print_error(int error) or similar variants.
+ */
 int xutil_create_file(char *path)
 {
 #ifdef XUTIL_UNIX
@@ -422,6 +432,39 @@ int xutil_create_file(char *path)
 #endif
 }
 
+/**
+ * Delete directory
+ *
+ * @param {char*} path: Path to the directory to be deleted
+ * @return {int}: 1 is returned on success, otherwise errno is returned which can be printed with
+ * xutil_print_error(int error) or similar variants.
+ */
+int xutil_delete_directory(char *path)
+{
+#if defined XUTIL_UNIX
+	if (rmdir(path) == -1)
+		return errno;
+	return 1;
+#elif defined XUTIL_WINDOWS
+#endif
+}
+
+/**
+ * Delete file
+ *
+ * @param {char*} path: Path to the file to be deleted
+ * @return {int}: 1 is returned on success, otherwise errno is returned which can be printed with
+ * xutil_print_error(int error) or similar variants.
+ */
+int xutil_delete_file(char *path)
+{
+#if defined XUTIL_UNIX
+	if (remove(path) == -1)
+		return errno;
+	return 1;
+#elif defined XUTIL_WINDOWS
+#endif
+}
 
 /**
  * Read file into buffer
