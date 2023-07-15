@@ -102,8 +102,9 @@ xspace_info xutil_get_space_info(char *path);
 long xutil_get_avail_memory(void);
 long xutil_get_max_memory(void);
 
-int xutil_create_directory(char *path, xutil_perm perm);
-int xutil_create_file(char *path, char *name);
+int xutil_change_permission(char *path, xutil_perm perm);
+int xutil_create_directory(char *path);
+int xutil_create_file(char *path);
 
 int xutil_read_file(char *path, char **buf);
 int xutil_write_file(char *path, char *contents, int mode);
@@ -127,6 +128,7 @@ void xutil_deinit_threads(void);
 #include <stdlib.h>
 
 #ifdef XUTIL_UNIX
+#include <pwd.h>
 #include <pthread.h>
 #include <sys/sysinfo.h>
 #include <sys/statvfs.h>
@@ -337,48 +339,85 @@ long xutil_get_max_memory(void)
 }
 
 /**
- * Create directory with given permissions
+ * Change the permission of a file or directory
  *
- * @return {int}: Errno is returned which can be printed with
- * xutil_print_error(int error) or similar variants.
+ * @param {char*} path: Path to the file or directory to change permissions
+ * @param {xutil_perm} perm: Enum that will indicate the permission level to be set
+ * @return {int}: On success 1 is returned, else errno * is returned which can be
+ * printed with xutil_print_error() * or similar variants.
  */
-int xutil_create_directory(char *path, xutil_perm perm)
+int xutil_change_permission(char *path, xutil_perm perm)
 {
-#ifdef XUTIL_UNIX
-	struct stat st = {0};
+#if defined XUTIL_UNIX
+	int err;
+	if (perm == XUTIL_PERM_USER) {
+		const char* username = getlogin();
+		if (username == NULL)
+			return errno;
 
-	if (stat(path, &st) == -1) {
-		if(perm == XUTIL_PERM_ONLY_OWNER_AND_ROOT) {
-			mkdir(path, 0700);
+		struct passwd *pw = getpwnam(username);
+		if (pw == NULL)
+			return errno;
+
+		uid_t userid = pw->pw_uid;
+
+		err = chown(path, userid, userid);
+		if (err == -1)
+			return errno;
+		return 1;
+	}
+	else if (perm == XUTIL_PERM_ROOT) {
+		err = chown(path, 0, 0);
+		if (err == -1) {
+			rmdir(path);
+			return errno;
+		}
+		else {
 			return 1;
 		}
-
-		mkdir(path, 0755);
-
-		if (perm == XUTIL_PERM_USER) {
-			return 1;
-		} else if (perm == XUTIL_PERM_ROOT) {
-			int err = chown(path, 0, 0);
-			if (err == -1) {
-				rmdir(path);
-				return errno;
-			}
-			else {
-				return 1;
-			}
-		} else {
-			return 0;
-		}
-	} else{
-		return errno;
+	}
+	else if (perm == XUTIL_PERM_ONLY_OWNER_AND_ROOT){
+		err = chmod(path, 700);
+		if (err == -1)
+			return errno;
+		return 1;
 	}
 #elif defined XUTIL_WINDOWS
 #endif
 }
 
-int xutil_create_file(char *path, char *name)
+
+/**
+ * Create directory with given permissions
+ *
+ * @return {int}: Errno is returned which can be printed with
+ * xutil_print_error(int error) or similar variants.
+ */
+int xutil_create_directory(char *path)
 {
 #ifdef XUTIL_UNIX
+	struct stat st = {0};
+
+	if (stat(path, &st) == -1)
+		mkdir(path, 0755);
+	else
+		return errno;
+#elif defined XUTIL_WINDOWS
+#endif
+}
+
+int xutil_create_file(char *path)
+{
+#ifdef XUTIL_UNIX
+	int fd = open(path, O_CREAT | S_IRUSR | S_IWUSR);
+	if (fd == -1)
+		return errno;
+
+	int err = close(fd);
+	if (err == -1)
+		return errno;
+
+	return 1;
 #elif defined XUTIL_WINDOWS
 #endif
 }
