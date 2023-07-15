@@ -689,6 +689,9 @@ int xutil_restart(void)
 	else
 		return xutil_get_last_error();
 #elif defined XUTIL_WINDOWS
+
+	BOOL result = ExitWindowsEx(flags, EWX_REBOOT | SHTDN_REASON_MINOR_OTHER);
+	return !!result;
 #endif
 }
 
@@ -706,10 +709,8 @@ int xutil_poweroff(void)
 	else
 		return xutil_get_last_error();
 #elif defined XUTIL_WINDOWS
-	if (ExitWindowsEx(EWX_SHUTDOWN, SHTDN_REASON_MINOR_OTHER) != 0)
-		return 1;
-	else
-		return xutil_get_last_error();
+	BOOL result = ExitWindowsEx(EWX_SHUTDOWN, SHTDN_REASON_MINOR_OTHER) != 0)
+	return !!result;
 #endif
 }
 
