@@ -184,6 +184,8 @@ void xutil_deinit_threads(void);
 
 #ifdef XUTIL_WINDOWS
 #include <windows.h>
+#include <AccCtrl.h>
+#include <AclAPI.h>
 
 #ifndef XUTIL_WINDOWS_DISABLE_PRAGMA_LINK
 #pragma comment(lib, "user32.lib")
@@ -389,6 +391,8 @@ int xutil_get_space_info(char *path, xspace_info *space)
 	else {
 		return 0;
 	}
+#else
+	return 0;
 #endif
 }
 
@@ -474,6 +478,7 @@ int xutil_change_permission(char *path, xutil_perm perm)
 		return 1;
 	}
 #elif defined XUTIL_WINDOWS
+	/* UNIMPLEMENTED */
 #endif
 }
 
@@ -494,6 +499,11 @@ int xutil_create_directory(char *path)
 	else
 		return errno;
 #elif defined XUTIL_WINDOWS
+	BOOL result = CreateDirectoryA(path, NULL);
+	if (result == TRUE)
+		return 1;
+
+	return 0;
 #endif
 }
 
