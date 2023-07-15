@@ -129,7 +129,7 @@ void xutil_write_error(int errcode, char **buf);
 int xutil_is_root(void);
 int xutil_get_num_cpu_core(void);
 int xutil_get_num_cpu_core_avail(void);
-xspace_info xutil_get_space_info(char *path);
+int xutil_get_space_info(char *path, xspace_info *space);
 long xutil_get_avail_memory(void);
 long xutil_get_max_memory(void);
 
@@ -356,21 +356,35 @@ int xutil_get_num_cpu_core_avail(void)
  * Retrieve information about space on a disk
  *
  * @param {char*} path: Path to the disk to retrieve info
- * @return {xspace_info}: contains free, available and capacity info as size_t
+ * @param {xspace_info}: contains free, available and capacity info as size_t
+ * @return {int}: On success 1 is returned, otherwise 0 is returned and errno is set
+ * which can be printed with xutil_print_error(int error) or similar variants.
  */
-xspace_info xutil_get_space_info(char *path)
+int xutil_get_space_info(char *path, xspace_info *space)
 {
 #ifdef XUTIL_UNIX
 	struct statvfs stat;
 	statvfs(path, &stat);
 	xspace_info space;
 
-	space.capacity = stat.f_frsize * stat.f_blocks;
-	space.free = stat.f_frsize * stat.f_bfree;
-	space.available = stat.f_frsize * stat.f_bavail;
+	space->capacity = stat.f_frsize * stat.f_blocks;
+	space->free = stat.f_frsize * stat.f_bfree;
+	space->available = stat.f_frsize * stat.f_bavail;
 
 	return space;
 #elif defined XUTIL_WINDOWS
+
+	ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;
+
+	if (GetDiskFreeSpaceEx(path, &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes))
+	{
+		space->available = (size_t)freeBytesAvailable.QuadPart;
+		space->capacity = (size_t)totalNumberOfBytes.QuadPart;
+		space->free = (size_t)totalNumberOfFreeBytes.QuadPart;
+	}
+	else {
+		return 0;
+	}
 #endif
 }
 
