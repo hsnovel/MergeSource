@@ -25,7 +25,7 @@
 #elif defined(__clang__) || defined(__clang_major__) || defined(__clang_minor__) || defined(__clang_patchlevel__) || defined(__clang_version__)
 #define XUTIL_CLANG
 
-#elif defined(_MSC_VER) || defineD(_MSC_FULL_VER) || defined(_MSC_FULL_VER) || defined(_MSC_BUILD)
+#elif defined(_MSC_VER) || defined(_MSC_FULL_VER) || defined(_MSC_FULL_VER) || defined(_MSC_BUILD)
 #define XUTIL_MSVC
 #endif
 
@@ -126,7 +126,7 @@ void xutil_print_error(int errcode);
 void xutil_print_last_error();
 void xutil_write_error(int errcode, char **buf);
 
-xutil_perm xutil_is_root(void);
+int xutil_is_root(void);
 int xutil_get_num_cpu_core(void);
 int xutil_get_num_cpu_core_avail(void);
 xspace_info xutil_get_space_info(char *path);
@@ -179,6 +179,11 @@ void xutil_deinit_threads(void);
 
 #ifdef XUTIL_WINDOWS
 #include <windows.h>
+
+#ifndef XUTIL_WINDOWS_DISABLE_PRAGMA_LINK
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "Advapi32.lib")
+#endif
 #endif
 
 /**
@@ -236,7 +241,7 @@ void xutil_print_error(int errcode)
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		       NULL, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errormsg, 0, NULL);
 	fprintf(xutil_config.print_error_fd, "Error: %s\n", errormsg);
-	LocalFree(errorMessage);
+	LocalFree(errormsg);
 #endif
 }
 
@@ -255,7 +260,7 @@ void xutil_print_last_error()
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		       NULL, xutil_get_last_error(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errormsg, 0, NULL);
 	fprintf(xutil_config.print_error_fd, "Error: %s\n", errormsg);
-	LocalFree(errorMessage);
+	LocalFree(errormsg);
 #endif
 }
 
@@ -284,12 +289,33 @@ void xutil_write_error(int errcode, char **buf)
  *
  * @return {enum xutil_perm}: Either XUTIL_PERM_USER or XUTIL_PERM_ROOT is returned
  */
-xutil_perm xutil_is_root(void)
+int xutil_is_root(void)
 {
+#if defined XUTIL_UNIX
 	if (geteuid() == 0)
-		return XUTIL_PERM_ROOT;
+		return 1;
 	else
-		return XUTIL_PERM_USER;
+		return 0;
+#elif defined XUTIL_WINDOWS
+	BOOL isroot = FALSE;
+	HANDLE tk = NULL;
+
+	if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &tk))
+	{
+		TOKEN_ELEVATION elevation;
+		DWORD size;
+
+		if (GetTokenInformation(tk, TokenElevation, &elevation, sizeof(elevation), &size))
+		{
+			isroot = elevation.TokenIsElevated;
+		}
+
+		CloseHandle(tk);
+	}
+
+	return isroot;
+
+#endif
 }
 
 /**
@@ -611,7 +637,9 @@ int xutil_poweroff(void)
 #endif
 }
 
+#if defined XUTIL_UNIX
 static pthread_attr_t attr;
+#endif
 
 unsigned long int xutil_get_thread_id(void)
 {
@@ -624,9 +652,12 @@ unsigned long int xutil_get_thread_id(void)
 
 size_t xutil_get_thread_stack_size(void)
 {
+#if defined XUTIL_UNIX
 	size_t stacksize;
 	pthread_attr_getstacksize (&attr, &stacksize);
 	return stacksize;
+#elif defined XUTIL_WINDOWS
+#endif
 }
 
 /**
@@ -634,11 +665,14 @@ size_t xutil_get_thread_stack_size(void)
  */
 void xutil_init_threads(void)
 {
-
+#if defined XUTIL_UNIX
 	size_t stacksize = 8388608;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	pthread_attr_setstacksize(&attr, stacksize);
+
+#elif defined XUTIL_WINDOWS
+#endif
 }
 
 /**
@@ -648,7 +682,10 @@ void xutil_init_threads(void)
  */
 void xutil_deinit_threads(void)
 {
+#if defined XUTIL_UNIX
 	pthread_attr_destroy(&attr);
+#elif defined XUTIL_WINDOWS
+#endif
 }
 
 #endif /* XUTIL_IMPLEMENTATION */
