@@ -1,6 +1,36 @@
 #ifndef XUTIL_H
 #define XUTIL_H
 
+/* OS FLAGS */
+#if defined(__WINDOWS__) || defined(__TOS_WIN__) || defined(__WIN32__) || defined(_WIN64) || defined(_WIN32) || defined(_WIN16)
+#define XUTIL_WINDOWS
+#elif defined(__gnu_linux__) || defined(__unix__) || defined(__unix) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
+#define XUTIL_UNIX
+#elif defined(macintosh) || defined(Macintosh) || defined(__APPLE__) || defined(__MACH__)
+#define XUTIL_MACOS
+#endif
+
+#if defined(__gnu_linux__)
+#define XUTIL_LINUX
+#endif
+
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
+#define XUTIL_BSD
+#endif
+
+/* COMPILER FLAGS */
+#if defined(__GNUC__) || defined(__GNUC_MINOR__) || defined(__GNUC_PATCHLEVEL__)
+#define XUTIL_GCC
+
+#elif defined(__clang__) || defined(__clang_major__) || defined(__clang_minor__) || defined(__clang_patchlevel__) || defined(__clang_version__)
+#define XUTIL_CLANG
+
+#elif defined(_MSC_VER) || defineD(_MSC_FULL_VER) || defined(_MSC_FULL_VER) || defined(_MSC_BUILD)
+#define XUTIL_MSVC
+#endif
+
+/* UTIL MACROS */
+
 #ifdef _XUTIL_CHECKER_
 #define BUILD_BUG_ON_ZERO(e) (0)
 #else
@@ -11,20 +41,21 @@
 #define __is_array(a) BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
 #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
 
-#if defined(__WINDOWS__) || defined(__TOS_WIN__) || defined(__WIN32__) || defined(_WIN64) || defined(_WIN32) || defined(_WIN16)
-#define XUTIL_WINDOWS
-#elif defined(__gnu_linux__) || defined(__unix__) || defined(__unix) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
-#define XUTIL_UNIX
-#elif defined(macintosh) || defined(Macintosh) || defined(__APPLE__) || defined(__MACH__)
-#define XUTIL_MACOS
+#if defined(XUTIL_CLANG) || defined(XUTIL_GCC)
+#define likely(x)  __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
+#else
+#define likely(x)
+#define unlikely(x)
 #endif
 
-#if defined(__gnu_linux__)
-#define XUTIL_LINIX
-#endif
-
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
-#define XUTIL_BSD
+#if defined (XUTIL_GCC) || defined (XUTIL_CLANG)
+#define XUTIL_ALIGN(x) __attribute__((aligned(x)))
+#elif defined (XUTIL_MSVC)
+#define XUTIL_ALIGN(x) __declspec(align(x))
+#else
+#warning "XUTIL_ALIGN will not be defined as not known compiler is used."
+#define XUTIL_ALIGN(x)
 #endif
 
 #include <stdint.h>
