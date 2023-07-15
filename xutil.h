@@ -55,8 +55,12 @@ typedef int64_t s64;
 
 #endif
 
-typedef enum  {XUTIL_ERROR_OPENING_FILE, XUTIL_ERROR_READING_FILE, XUTIL_ERROR_GETTING_FILE_STATUS,
-	 XUTIL_ERROR_ALLOCATING_SPACE} xutil_error;
+typedef enum  {
+	XUTIL_ERROR_OPENING_FILE,
+	XUTIL_ERROR_READING_FILE,
+	XUTIL_ERROR_GETTING_FILE_STATUS,
+	XUTIL_ERROR_ALLOCATING_SPACE,
+} xutil_error;
 
 #define KILOBYTE(x) ((x) / 1024)
 #define MEGABYTE(x) ((x) / (1024 * 1024))
@@ -69,9 +73,17 @@ typedef struct {
 	size_t available;
 } xspace_info;
 
+struct xutil_config {
+	FILE *print_error_fd;
+};
 
-int xutil_get_last_error();
-void xutil_print_error(FILE* fd, int errcode);
+struct xutil_config xutil_config;
+
+void xutil_init_config();
+void xutil_config_change_print_err_fd(FILE *fd);
+int  xutil_get_last_error();
+void xutil_print_error(int errcode);
+void xutil_print_last_error();
 void xutil_write_error(int errcode, char **buf);
 
 int xutil_get_num_cpu_core(void);
@@ -80,7 +92,12 @@ xspace_info xutil_get_space_info(char *path);
 long xutil_get_avail_memory(void);
 long xutil_get_max_memory(void);
 
+int xutil_create_directory(char *path);
+int xutil_create_file(char *path, char *name);
+
 int xutil_read_file(char *path, char **buf);
+int xutil_write_file(char *path, char *contents, int mode);
+
 int xutil_is_debugger_attached(void);
 
 int xutil_restart(void);
@@ -110,11 +127,35 @@ void xutil_deinit_threads(void);
 #include <linux/reboot.h>
 #include <sys/syscall.h>
 #include <sys/reboot.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 
 #ifdef XUTIL_WINDOWS
 #include <windows.h>
 #endif
+
+/**
+ * This function should be called as the first thing before calling any other
+ * function from xutil.h, altough not all functions are dependening on config
+ * from this initilization some do and if this is not called program will
+ * probably segfault.
+ */
+void xutil_init_config()
+{
+	xutil_config.print_error_fd = stderr;
+}
+
+/**
+ * Change the global config for xutil_print_error messages's file descriptor used to print
+ *
+ * @param {FILE*} fd: File descriptor to print error messages,
+ * set it either to stderr or stdout
+ */
+void xutil_config_change_print_err_fd(FILE *fd)
+{
+	xutil_config.print_error_fd = fd;
+}
 
 /**
  * Since different operating systems return different error codes it is not
@@ -135,20 +176,39 @@ int xutil_get_last_error()
 }
 
 /**
+ * Print errorcode to fd.
+ *
+ * @param {FILE*} fd: File descriptor to print output, should either be passed stdout or stderr
+ * @apram {int} errcode: Error code retrieved from xutil_get_last_error.
+ */
+void xutil_print_error(int errcode)
+{
+#if defined XUTIL_UNIX
+	fprintf(xutil_config.print_error_fd, "Error: %s\n", strerror(errno));
+#elif defined XUTIL_WINDOWS
+	LPSTR errormsg;
+	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		       NULL, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errormsg, 0, NULL);
+	fprintf(xutil_config.print_error_fd, "Error: %s\n", errormsg);
+	LocalFree(errorMessage);
+#endif
+}
+
+/**
  * Print errorcode retrieved from xutil_get_last error to fd.
  *
  * @param {FILE*} fd: File descriptor to print output, should either be passed stdout or stderr
  * @apram {int} errcode: Error code retrieved from xutil_get_last_error.
  */
-void xutil_print_error(FILE* fd, int errcode)
+void xutil_print_last_error()
 {
 #if defined XUTIL_UNIX
-	fprintf(fd, "Error: %s\n", strerror(errno));
+	fprintf(xutil_config.print_error_fd, "Error: %s\n", strerror(xutil_get_last_error()));
 #elif defined XUTIL_WINDOWS
 	LPSTR errormsg;
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		       NULL, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errormsg, 0, NULL);
-	fprintf(fd, "Error: %s\n", errormsg);
+		       NULL, xutil_get_last_error(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errormsg, 0, NULL);
+	fprintf(xutil_config.print_error_fd, "Error: %s\n", errormsg);
 	LocalFree(errorMessage);
 #endif
 }
@@ -221,7 +281,7 @@ xspace_info xutil_get_space_info(char *path)
 	xspace_info space;
 
 	space.capacity = stat.f_frsize * stat.f_blocks;
-	space.free = stat.f_frsize * stat.f_bfree;;
+	space.free = stat.f_frsize * stat.f_bfree;
 	space.available = stat.f_frsize * stat.f_bavail;
 
 	return space;
@@ -252,6 +312,28 @@ long xutil_get_max_memory(void)
 #elif defined XUTIL_WINDOWS
 #endif
 }
+
+int xutil_create_directory(char *path)
+{
+#ifdef XUTIL_UNIX
+	struct stat st = {0};
+
+	if (stat(path, &st) == -1) {
+		mkdir(path, 0700);
+	} else{
+		return errno;
+	}
+#elif defined XUTIL_WINDOWS
+#endif
+}
+
+int xutil_create_file(char *path, char *name)
+{
+#ifdef XUTIL_UNIX
+#elif defined XUTIL_WINDOWS
+#endif
+}
+
 
 /**
  * Read file into buffer
