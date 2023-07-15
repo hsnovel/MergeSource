@@ -117,6 +117,12 @@ struct xutil_config {
 	FILE *print_error_fd;
 };
 
+typedef struct {
+	size_t capacity;
+	size_t available;
+} xmemory_info;
+
+
 struct xutil_config xutil_config;
 
 void xutil_init_config(void);
@@ -130,8 +136,7 @@ int xutil_is_root(void);
 int xutil_get_num_cpu_core(void);
 int xutil_get_num_cpu_core_avail(void);
 int xutil_get_space_info(char *path, xspace_info *space);
-long xutil_get_avail_memory(void);
-long xutil_get_max_memory(void);
+int xutil_get_memory_info(xmemory_info *info);
 
 int xutil_change_permission(char *path, xutil_perm perm);
 int xutil_create_directory(char *path);
@@ -373,7 +378,6 @@ int xutil_get_space_info(char *path, xspace_info *space)
 
 	return space;
 #elif defined XUTIL_WINDOWS
-
 	ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;
 
 	if (GetDiskFreeSpaceEx(path, &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes))
@@ -389,26 +393,39 @@ int xutil_get_space_info(char *path, xspace_info *space)
 }
 
 /**
- * Get available ram from system
- * @return {long}: return avaliable ram in bytes
+ * Get ram info from system
+ * @param {xmemory_info}: Pointer to a struct which will receive capacity and avaliable ram in bytes
+ * @return {int}: On succeed 1 is returned, otherwise 0 is returned and errno is set.
  */
-long xutil_get_avail_memory(void)
+int xutil_get_memory_info(xmemory_info *info)
 {
 #if defined XUTIL_UNIX
-	return get_avphys_pages() * sysconf(_SC_PAGESIZE);
-#elif defined XUTIL_WINDOWS
-#endif
-}
+	long phpages = get_phys_pages();
+	if (phpages == -1)
+		return 0;
 
-/**
- * Get maximum ram from system
- * @return {long}: return maximum ram in bytes
- */
-long xutil_get_max_memory(void)
-{
-#if defined XUTIL_UNIX
-	return get_phys_pages() * sysconf(_SC_PAGESIZE);
+	long avphpages = get_avphys_pages();
+	if (avphpages == -1)
+		return 0;
+
+	long pgsize = sysconf(_SC_PAGESIZE);
+	if (pgsize == -1)
+		return 0;
+
+	info->capacity =  phpages * pgsize;
+	info->available = avphpages * pgsize;
+
+	return 1;
 #elif defined XUTIL_WINDOWS
+	MEMORYSTATUSEX memorystat;
+	memorystat.dwLength = sizeof(memorystat);
+
+	if (!GlobalMemoryStatusEx(&memorystat))
+		return 0;
+
+	info->capacity = (size_t)memorystat.ullTotalPhys;
+	info->available = (size_t)memorystat.ullAvailPhys;
+	return 1;
 #endif
 }
 
