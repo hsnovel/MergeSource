@@ -72,6 +72,7 @@ typedef struct {
 
 int xutil_get_last_error();
 void xutil_print_error(FILE* fd, int errcode);
+void xutil_write_error(int errcode, char **buf);
 
 int xutil_get_num_cpu_core(void);
 int xutil_get_num_cpu_core_avail(void);
@@ -137,7 +138,7 @@ int xutil_get_last_error()
  * Print errorcode retrieved from xutil_get_last error to fd.
  *
  * @param {FILE*} fd: File descriptor to print output, should either be passed stdout or stderr
- * @apram {int} errcode: Error code retrieved from xutil_get_last_error:
+ * @apram {int} errcode: Error code retrieved from xutil_get_last_error.
  */
 void xutil_print_error(FILE* fd, int errcode)
 {
@@ -152,8 +153,23 @@ void xutil_print_error(FILE* fd, int errcode)
 #endif
 }
 
-xutil_write_error(int errcode, char **buf)
+/**
+ * Write the error message into allocated string, then point buf to it.
+ * The error message * is heap allocated so the programmer should free it explicitly.
+ *
+ * @param {int} errcode: Error code retrieved from xutil_get_last_error.
+ * @param {char**} buf: Destinartion buffer to put the string.
+ */
+void xutil_write_error(int errcode, char **buf)
 {
+#if defined XUTIL_WINDOWS
+	LPSTR errormsg;
+	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		       NULL, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errormsg, 0, NULL);
+	*buf = errormsg;
+#elif defined XUTIL_UNIX
+	*buf = strerror(errcode);
+#endif
 
 }
 
