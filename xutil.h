@@ -3,7 +3,7 @@
 
 /*
  * All defines that can be turned on or off:
- * 
+ *
  * XUTIL_IMPLEMENTATION
  * XUTIL_WINDOWS_SUPRESS_LINK_ADVAPI_WARNING
  * XUTIL_WINDOWS_ENABLE_LINK_ADVAPI
@@ -307,7 +307,7 @@ void xutil_write_error(int errcode, char **buf)
 
 /**
  * Check if the program has root or admnisitration privilages.
- * 
+ *
  * FOR WINDOWS USERS DEFINE XUTIL_WINDOWS_ENABLE_LINK_ADVAPI for linking agains Advapi
  * library or XUTIL_WINDOWS_SUPRESS_LINK_ADVAPI_WARNING to supress the warning if you
  * are going to NOT link with pragma comment. Otherwise linker will fail!
@@ -398,13 +398,12 @@ int xutil_get_space_info(char *path, xspace_info *space)
 #ifdef XUTIL_UNIX
 	struct statvfs stat;
 	statvfs(path, &stat);
-	xspace_info space;
 
 	space->capacity = stat.f_frsize * stat.f_blocks;
 	space->free = stat.f_frsize * stat.f_bfree;
 	space->available = stat.f_frsize * stat.f_bavail;
 
-	return space;
+	return 1;
 #elif defined XUTIL_WINDOWS
 	ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;
 
@@ -803,7 +802,7 @@ unsigned long int xutil_get_thread_id(void)
  *
  * @param {size_t*} stack_size: Pointer to data that will recieve stack size in bytes
  * @return {int}: On success 1 is returned, otherwise 0 is returned
- * 
+ *
 */
 int xutil_get_thread_stack_size(size_t *stack_size)
 {
