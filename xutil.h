@@ -156,6 +156,9 @@ int xutil_delete_file(char *path);
 int xutil_read_file(char *path, char **buf);
 int xutil_write_file(char *path, char *contents, int mode);
 
+int xutil_copy_file(char *source, char *dest);
+int xutil_move_file(char *source, char *dest);
+
 int xutil_is_debugger_attached(void);
 
 int xutil_restart(void);
@@ -304,6 +307,10 @@ void xutil_write_error(int errcode, char **buf)
 
 /**
  * Check if the program has root or admnisitration privilages.
+ * 
+ * FOR WINDOWS USERS DEFINE XUTIL_WINDOWS_ENABLE_LINK_ADVAPI for linking agains Advapi
+ * library or XUTIL_WINDOWS_SUPRESS_LINK_ADVAPI_WARNING to supress the warning if you
+ * are going to NOT link with pragma comment. Otherwise linker will fail!
  *
  * @return {enum xutil_perm}: Either XUTIL_PERM_USER or XUTIL_PERM_ROOT is returned
  */
@@ -338,7 +345,6 @@ int xutil_is_root(void)
 
 	return isroot;
 #else
-#pragma message("Please enable to link agains ADVAPI otherwise this function will not work");
 	return 0;
 #endif
 
@@ -667,6 +673,33 @@ int xutil_read_file(char *path, char **buf)
 	CloseHandle(fd);
 	return 1;
 #endif
+}
+
+int xutil_write_file(char* path, char* contents, int mode)
+{
+
+}
+
+/**
+ * Copy file from source to destination
+ *
+ * @param {char*} source: Path to the source file to be copied
+ * @param {char*} dest: Destination to copy to
+ * @return {int}: On success 1 is returned, on failure 0 is returned and
+ * errorno is set.
+ */
+int xutil_copy_file(char* source, char* dest)
+{
+#if defined XUTIL_WINDOWS
+	BOOL result = CopyFile(source, dest, FALSE);
+	return !!result;
+#elif defined XUTIL_UNIX
+#endif
+}
+
+int xutil_move_file(char* source, char* dest)
+{
+
 }
 
 int xutil_is_debugger_attached(void)
