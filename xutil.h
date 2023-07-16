@@ -503,6 +503,8 @@ int xutil_change_permission(char *path, xutil_perm perm)
 			return errno;
 		return 1;
 	}
+
+	return 1;
 #elif defined XUTIL_WINDOWS
 	/* UNIMPLEMENTED UNTILL I FIGURE OUT A WAY TO USE WINAPI*/
 	return 0;
@@ -521,10 +523,13 @@ int xutil_create_directory(char *path)
 #ifdef XUTIL_UNIX
 	struct stat st = {0};
 
-	if (stat(path, &st) == -1)
+	if (stat(path, &st) == -1) {
 		mkdir(path, 0755);
-	else
+		return 1;
+	}
+	else {
 		return errno;
+	}
 #elif defined XUTIL_WINDOWS
 	BOOL result = CreateDirectoryA(path, NULL);
 	return !!result;
