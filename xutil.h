@@ -697,9 +697,21 @@ int xutil_copy_file(char* source, char* dest)
 #endif
 }
 
+/**
+ * Move file from source to desitnation
+ *
+ * @param {char*} source: Source path to file to be moved
+ * @param {char*} dest: Destination path to move the file to
+ * @return {int}: On success 1 is returned, on failure 0 is returned and
+ * errorno is set.
+ */
 int xutil_move_file(char* source, char* dest)
 {
-
+#if defined XUTIL_WINDOWS
+	BOOL result = MoveFile(source, dest);
+	return !!result;
+#elif defined XUTIL_UNIX
+#endif
 }
 
 int xutil_is_debugger_attached(void)
