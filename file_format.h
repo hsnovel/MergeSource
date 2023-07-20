@@ -335,8 +335,8 @@ typedef struct {
 	uint16_t machine;
 	uint16_t number_of_sections;
 	uint32_t time_date_stamp;
-	uint32_t pointer_to_symbol_table;
-	uint32_t number_of_symbols;
+	uint32_t pointer_to_symbol_table; /* This should be 0 for image because COFF debug info is deprecated */
+	uint32_t number_of_symbols;       /* This should be 0 for image because COFF debug info is deprecated */
 	uint16_t size_of_optional_header;
 	uint16_t characteristics;
 } pe32_header;
@@ -445,10 +445,30 @@ static struct pe32_machine_type_str_map pe32_machine_type_map[] = {
 	{ PE32_MACHINE_TYPE_WCEMIPSV2, "MIPS little-endian WCE v2" },
 };
 
+enum pe32_image_characteristics {
+	IMAGE_FILE_RELOCS_STRIPPED       = 0x0001, /* File does not contain base relocations. */
+	IMAGE_FILE_EXECUTABLE_IMAGE      = 0x0002, /* File is valid and can be run. */
+	IMAGE_FILE_LINE_NUMS_STRIPPED    = 0x0004, /* Deprecated: COFF line numbers have been removed. */
+	IMAGE_FILE_LOCAL_SYMS_STRIPPED   = 0x0008, /* Deprecated: COFF symbol table entries for local symbols have been removed. */
+	IMAGE_FILE_AGGRESSIVE_WS_TRIM    = 0x0010, /* Obsolete: Aggressively trim working set. */
+	IMAGE_FILE_LARGE_ADDRESS_AWARE   = 0x0020, /* Application can handle > 2-GB addresses. */
+	IMAGE_FILE_RESERVED_0040         = 0x0040, /* Reserved for future use. */
+	IMAGE_FILE_BYTES_REVERSED_LO     = 0x0080, /* Deprecated: Little endian - the least significant bit (LSB) precedes the most significant bit (MSB) in memory. */
+	IMAGE_FILE_32BIT_MACHINE         = 0x0100, /* Machine is based on a 32-bit-word architecture. */
+	IMAGE_FILE_DEBUG_STRIPPED        = 0x0200, /* Debugging information is removed from the image file. */
+	IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP = 0x0400, /* If the image is on removable media, fully load it and copy it to the swap file. */
+	IMAGE_FILE_NET_RUN_FROM_SWAP     = 0x0800, /* If the image is on network media, fully load it and copy it to the swap file. */
+	IMAGE_FILE_SYSTEM               = 0x1000, /* The image file is a system file, not a user program. */
+	IMAGE_FILE_DLL                  = 0x2000, /* The image file is a dynamic-link library (DLL). Such files are considered executable files for almost all purposes, although they cannot be directly run. */
+	IMAGE_FILE_UP_SYSTEM_ONLY       = 0x4000, /* The file should be run only on a uniprocessor machine. */
+	IMAGE_FILE_BYTES_REVERSED_HI    = 0x8000  /* Deprecated: Big endian - the MSB precedes the LSB in memory. */
+};
+
 #define FILE_FORMAT_PE32_SIGNATURE_EXISTS 0x00004550
 
 int pe32_does_signature_exist(char *data);
 const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type);
+int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit);
 
 enum pe32_index {
 	tmp,
@@ -549,6 +569,16 @@ const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type) {
 		}
 	}
 	return "Invalid type";
+}
+
+/**
+ * Check if flag is set in pe32_header.characteristics
+ *
+ * return {int}: Return 1 if flag is set, otherwise return 0.
+ */
+int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit)
+{
+	return !!(characteristics & bit);
 }
 
 /* Determine if file link format */
