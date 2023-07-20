@@ -464,10 +464,33 @@ enum pe32_image_characteristics {
 	IMAGE_FILE_BYTES_REVERSED_HI    = 0x8000  /* Deprecated: Big endian - the MSB precedes the LSB in memory. */
 };
 
+static struct pe32_image_characteristics_map {
+	int index;
+	char *str;
+} pe32_characteristics_map[] = {
+	{ IMAGE_FILE_RELOCS_STRIPPED, "Stripped" },
+	{ IMAGE_FILE_EXECUTABLE_IMAGE, "Valid Executable" },
+	{ IMAGE_FILE_LINE_NUMS_STRIPPED, "COFF line nums are stripped" },
+	{ IMAGE_FILE_LOCAL_SYMS_STRIPPED, "COFF table entries are stripped" },
+	{ IMAGE_FILE_AGGRESSIVE_WS_TRIM, "Agressively trim working set" },
+	{ IMAGE_FILE_LARGE_ADDRESS_AWARE, "Can handle > 2GB adresses" },
+	{ IMAGE_FILE_RESERVED_0040, "" },
+	{ IMAGE_FILE_BYTES_REVERSED_LO, "Little endian" },
+	{ IMAGE_FILE_32BIT_MACHINE, "Based on 32 bit word architecture" },
+	{ IMAGE_FILE_DEBUG_STRIPPED, "Debug info is stripped" },
+	{ IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP, "Copy image to swap if it is on removable media" },
+	{ IMAGE_FILE_NET_RUN_FROM_SWAP, "If the image is on network media, fully load it and copy it to the swap file." },
+	{ IMAGE_FILE_SYSTEM, "System file" },
+	{ IMAGE_FILE_DLL, "DLL file" },
+	{ IMAGE_FILE_UP_SYSTEM_ONLY, "Uniprocessor machine only" },
+	{ IMAGE_FILE_BYTES_REVERSED_HI, "Big endian" },
+};
+
 #define FILE_FORMAT_PE32_SIGNATURE_EXISTS 0x00004550
 
 int pe32_does_signature_exist(char *data);
 const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type);
+const char* pe32_get_characteristics_string(enum pe32_image_characteristics machine_type);
 int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit);
 
 enum pe32_index {
@@ -566,6 +589,16 @@ const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type) {
 	for (size_t i = 0; i < sizeof(pe32_machine_type_map) / sizeof(pe32_machine_type_map[0]); ++i) {
 		if (pe32_machine_type_map[i].machine_type == machine_type) {
 			return pe32_machine_type_map[i].str;
+		}
+	}
+	return "Invalid type";
+}
+
+const char* pe32_get_characteristics_string(enum pe32_image_characteristics machine_type)
+{
+	for (size_t i = 0; i < sizeof(pe32_characteristics_map) / sizeof(pe32_characteristics_map[0]); ++i) {
+		if (pe32_characteristics_map[i].index == machine_type) {
+			return pe32_characteristics_map[i].str;
 		}
 	}
 	return "Invalid type";
