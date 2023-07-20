@@ -401,12 +401,10 @@ enum pe32_machine_type {
 	PE32_MACHINE_TYPE_WCEMIPSV2  = 0x169   /* MIPS little-endian WCE v2 */
 };
 
-struct pe32_machine_type_str_map {
+static struct {
     enum pe32_machine_type machine_type;
     const char* str;
-};
-
-static struct pe32_machine_type_str_map pe32_machine_type_map[] = {
+} pe32_machine_type_map[] = {
 	{ PE32_MACHINE_TYPE_UNKNOWN, "Unknown machine type" },
 	{ PE32_MACHINE_TYPE_ALPHA, "Alpha AXP, 32-bit address space" },
 	{ PE32_MACHINE_TYPE_ALPHA64, "Alpha 64, 64-bit address space" },
@@ -458,7 +456,7 @@ enum pe32_image_characteristics {
 	PE32_CHARACTERISTIC_BYTES_REVERSED_HI    = 0x8000  /* Deprecated: Big endian - the MSB precedes the LSB in memory. */
 };
 
-static struct pe32_image_characteristics_map {
+static struct {
 	int index;
 	char *str;
 } pe32_characteristics_map[] = {
@@ -497,7 +495,7 @@ enum pe32_subsystem {
 	PE32_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16  /* Windows boot application */
 };
 
-static struct pe32_subsystem_str_map {
+static struct {
 	int index;
 	char *str;
 } pe32_subsystem_map[] = {
@@ -517,13 +515,45 @@ static struct pe32_subsystem_str_map {
 	{ PE32_SUBSYSTEM_WINDOWS_BOOT_APPLICATION, "Windows boot"},
 };
 
+enum pe32_dll_characteristics {
+	PE32_DLLCHARACTERISTICS_HIGH_ENTROPY_VA     = 0x0020, /* Image can handle a high entropy 64-bit virtual address space. */
+	PE32_DLLCHARACTERISTICS_DYNAMIC_BASE        = 0x0040, /* DLL can be relocated at load time. */
+	PE32_DLLCHARACTERISTICS_FORCE_INTEGRITY     = 0x0080, /* Code Integrity checks are enforced. */
+	PE32_DLLCHARACTERISTICS_NX_COMPAT           = 0x0100, /* Image is NX compatible. */
+	PE32_DLLCHARACTERISTICS_NO_ISOLATION        = 0x0200, /* Isolation aware, but do not isolate the image. */
+	PE32_DLLCHARACTERISTICS_NO_SEH              = 0x0400, /* Does not use structured exception (SE) handling. No SE handler may be called in this image. */
+	PE32_DLLCHARACTERISTICS_NO_BIND             = 0x0800, /* Do not bind the image. */
+	PE32_DLLCHARACTERISTICS_APPCONTAINER        = 0x1000, /* Image must execute in an AppContainer. */
+	PE32_DLLCHARACTERISTICS_WDM_DRIVER          = 0x2000, /* A WDM driver. */
+	PE32_DLLCHARACTERISTICS_GUARD_CF            = 0x4000, /* Image supports Control Flow Guard. */
+	PE32_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE = 0x8000 /* Terminal Server aware. */
+};
+
+static struct {
+	int index;
+	char *str;
+} pe32_dll_characteristics_map[] = {
+	{ PE32_DLLCHARACTERISTICS_HIGH_ENTROPY_VA,      "Image can handle a high entropy 64-bit virtual address space." },
+	{ PE32_DLLCHARACTERISTICS_DYNAMIC_BASE,         "DLL can be relocated at load time." },
+	{ PE32_DLLCHARACTERISTICS_FORCE_INTEGRITY,      "Code Integrity checks are enforced." },
+	{ PE32_DLLCHARACTERISTICS_NX_COMPAT,            "Image is NX compatible." },
+	{ PE32_DLLCHARACTERISTICS_NO_ISOLATION,         "Isolation aware, but do not isolate the image." },
+	{ PE32_DLLCHARACTERISTICS_NO_SEH,               "Does not use structured exception (SE) handling. No SE handler may be called in this image." },
+	{ PE32_DLLCHARACTERISTICS_NO_BIND,              "Do not bind the image." },
+	{ PE32_DLLCHARACTERISTICS_APPCONTAINER,         "Image must execute in an AppContainer." },
+	{ PE32_DLLCHARACTERISTICS_WDM_DRIVER,           "A WDM driver." },
+	{ PE32_DLLCHARACTERISTICS_GUARD_CF,             "Image supports Control Flow Guard." },
+	{ PE32_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE, "Terminal Server aware." }
+};
+
 #define FILE_FORMAT_PE32_SIGNATURE_EXISTS 0x00004550
 
 int pe32_does_signature_exist(char *data);
 
 const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type);
 const char* pe32_get_characteristics_string(enum pe32_image_characteristics machine_type);
-const char* pe32_get_subsystem_string(enum pe32_subsystem machine_type);
+const char* pe32_get_subsystem_string(enum pe32_subsystem type);
+const char* pe32_get_dll_characteristics_string(enum pe32_subsystem type);
 
 int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit);
 pe32_header *pe32_get_header(void *data);
@@ -622,7 +652,7 @@ const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type) {
 			return pe32_machine_type_map[i].str;
 		}
 	}
-	return "Invalid type";
+	return "Invalid machine type";
 }
 
 const char* pe32_get_characteristics_string(enum pe32_image_characteristics machine_type)
@@ -632,19 +662,28 @@ const char* pe32_get_characteristics_string(enum pe32_image_characteristics mach
 			return pe32_characteristics_map[i].str;
 		}
 	}
-	return "Invalid type";
+	return "Invalid characteristics";
 }
 
-const char* pe32_get_subsystem_string(enum pe32_subsystem machine_type)
+const char* pe32_get_subsystem_string(enum pe32_subsystem type)
 {
 	for (size_t i = 0; i < sizeof(pe32_subsystem_map) / sizeof(pe32_subsystem_map[0]); ++i) {
-		if (pe32_subsystem_map[i].index == machine_type) {
+		if (pe32_subsystem_map[i].index == type) {
 			return pe32_subsystem_map[i].str;
 		}
 	}
-	return "Invalid type";
+	return "Invalid subsystem";
 }
 
+const char* pe32_get_dll_characteristics_string(enum pe32_subsystem type)
+{
+	for (size_t i = 0; i < sizeof(pe32_dll_characteristics_map) / sizeof(pe32_dll_characteristics_map[0]); ++i) {
+		if (pe32_dll_characteristics_map[i].index == type) {
+			return pe32_dll_characteristics_map[i].str;
+		}
+	}
+	return "No dll characteristics found";
+}
 
 /**
  * Check if flag is set in pe32_header.characteristics
