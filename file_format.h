@@ -1,10 +1,6 @@
 #ifndef FILE_FORMAT_H
 #define FILE_FORMAT_H
 
-/* I honestly do not think this will work on big endian binaries, and I don't have a testing
- * enviroment for that, so this will be only spesific to little endian
- */
-
 #include <stdint.h>
 #include <stdbool.h>
 
