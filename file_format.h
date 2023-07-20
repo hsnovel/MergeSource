@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Note most of the comments are taken directly from the specsification page,
+ * either wikipedia or MicroSoft's own website to avoid any mistakes */
+
 /*==================================================
  *                                                 *
  *                                                 *
@@ -337,36 +340,43 @@ typedef struct {
 #define PE32 0x010b
 #define PE32PLUS 0x020b
 typedef struct {
-	uint16_t ident; /* Is set to either PE32(32 bit) or PE32PLUS(64 bit) */
-	uint8_t  major_linker_ver;
-	uint8_t  minor_linker_ver;
-	uint32_t code_size;
-	uint32_t initialized_data_size;
-	uint32_t uninitialized_data_size;
-	uint32_t entry_point_address;
-	uint32_t base_of_code;
-	uint32_t base_of_data;
-	uint32_t image_base;
-	uint32_t section_alignement;
-	uint32_t file_alignement;
-	uint16_t major_operating_system_ver;
-	uint16_t minor_operating_system_ver;
-	uint16_t major_image_ver;
-	uint16_t minor_image_ver;
-	uint16_t major_subsystem_ver;
-	uint16_t minor_subsystem_ver;
-	uint32_t win32_ver_value;
-	uint32_t sizeof_image;
-	uint32_t sizeof_headers;
-	uint32_t checksum;
-	uint16_t subsystem;
+	uint16_t ident;			/* Is set to either PE32(32 bit) or PE32PLUS(64 bit) */
+	uint8_t  major_linker_ver;		/* Major linker version */
+	uint8_t  minor_linker_ver;		/* Minor linker version */
+	uint32_t code_size;			/* Size of code(text) section or the sum of all code sections if there are multiple sections */
+	uint32_t initialized_data_size;	/* The size of the initialized data section, or the sum of all such sections if there are multiple data sections */
+	uint32_t uninitialized_data_size;	/* The size of the uninitialized data section (BSS), or the sum of all such sections if there are multiple BSS sections */
+	uint32_t entry_point_address;		/* The address of the entry point relative to the image base when the executable file is loaded into memory. For program
+						 * images, this is the starting address. For device drivers, this is the address of the initialization function. An entry
+						 * point is optional for DLLs. When no entry point is present, this field must be zero. */
+	uint32_t base_of_code;			/* The address that is relative to the image base of the beginning-of-code section when it is loaded into memory. */
+	uint32_t base_of_data;			/* The address that is relative to the image base of the beginning-of-data section when it is loaded into memory. */
+	uint32_t image_base;			/* The preferred address of the first byte of image when loaded into memory; must be a multiple of 64 K. The default for DLLs
+						 * is 0x10000000. The default for Windows CE EXEs is 0x00010000. The default for Windows NT, Windows 2000, Windows XP,
+						 * Windows 95, Windows 98, and Windows Me is 0x00400000. */
+	uint32_t section_alignement;		/* The alignment (in bytes) of sections when they are loaded into memory. It must be greater than or equal to FileAlignment.
+						 * The default is the page size for the architecture. */
+	uint32_t file_alignement;		/* The alignment factor (in bytes) that is used to align the raw data of sections in the image file. The value should be a
+						 * power of 2 between 512 and 64 K, inclusive. The default is 512. If the SectionAlignment is less than the architecture's
+						 * page size, then FileAlignment must match SectionAlignment. */
+	uint16_t major_operating_system_ver;	/* The major version number of the required operating system. */
+	uint16_t minor_operating_system_ver;	/* The minor version number of the required operating system. */
+	uint16_t major_image_ver;		/* The major version number of the image. */
+	uint16_t minor_image_ver;		/* The minor version number of the image. */
+	uint16_t major_subsystem_ver;		/* The major version number of the subsystem. */
+	uint16_t minor_subsystem_ver;		/* The minor version number of the subsystem. */
+	uint32_t win32_ver_value;		/* Reserved, must be zero. */
+	uint32_t sizeof_image;			/* The size (in bytes) of the image, including all headers, as the image is loaded in memory. It must be a multiple of SectionAlignment. */
+	uint32_t sizeof_headers;		/* The combined size of an MS-DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment. */
+	uint32_t checksum;			/* The combined size of an MS-DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment. */
+	uint16_t subsystem;			/* The subsystem that is required to run this image. */
 	uint16_t dll_characteristics;
-	uint32_t sizeof_stack_reserve;
-	uint32_t sizeof_stack_commit;
-	uint32_t sizeof_heap_reserve;
-	uint32_t sizeof_heap_commit;
-	uint32_t laoder_flags;
-	uint32_t numof_rva_and_sizes;
+	uint32_t sizeof_stack_reserve;		/* The size of the stack to reserve. Only SizeOfStackCommit is committed; the rest is made available one page at a time until the reserve size is reached. */
+	uint32_t sizeof_stack_commit;		/* The size of the stack to commit. */
+	uint32_t sizeof_heap_reserve;		/* The size of the local heap space to reserve. Only SizeOfHeapCommit is committed; the rest is made available one page at a time until the reserve size is reached. */
+	uint32_t sizeof_heap_commit;		/* The size of the local heap space to commit. */
+	uint32_t laoder_flags;			/* Reserved, must be zero. */
+	uint32_t numof_rva_and_sizes;		/* The number of data-directory entries in the remainder of the optional header. Each describes a location and size. */
 } pe32_optional_header;
 
 enum pe32_machine_type {
@@ -441,51 +451,91 @@ static struct pe32_machine_type_str_map pe32_machine_type_map[] = {
 };
 
 enum pe32_image_characteristics {
-	IMAGE_FILE_RELOCS_STRIPPED       = 0x0001, /* File does not contain base relocations. */
-	IMAGE_FILE_EXECUTABLE_IMAGE      = 0x0002, /* File is valid and can be run. */
-	IMAGE_FILE_LINE_NUMS_STRIPPED    = 0x0004, /* Deprecated: COFF line numbers have been removed. */
-	IMAGE_FILE_LOCAL_SYMS_STRIPPED   = 0x0008, /* Deprecated: COFF symbol table entries for local symbols have been removed. */
-	IMAGE_FILE_AGGRESSIVE_WS_TRIM    = 0x0010, /* Obsolete: Aggressively trim working set. */
-	IMAGE_FILE_LARGE_ADDRESS_AWARE   = 0x0020, /* Application can handle > 2-GB addresses. */
-	IMAGE_FILE_RESERVED_0040         = 0x0040, /* Reserved for future use. */
-	IMAGE_FILE_BYTES_REVERSED_LO     = 0x0080, /* Deprecated: Little endian - the least significant bit (LSB) precedes the most significant bit (MSB) in memory. */
-	IMAGE_FILE_32BIT_MACHINE         = 0x0100, /* Machine is based on a 32-bit-word architecture. */
-	IMAGE_FILE_DEBUG_STRIPPED        = 0x0200, /* Debugging information is removed from the image file. */
-	IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP = 0x0400, /* If the image is on removable media, fully load it and copy it to the swap file. */
-	IMAGE_FILE_NET_RUN_FROM_SWAP     = 0x0800, /* If the image is on network media, fully load it and copy it to the swap file. */
-	IMAGE_FILE_SYSTEM               = 0x1000, /* The image file is a system file, not a user program. */
-	IMAGE_FILE_DLL                  = 0x2000, /* The image file is a dynamic-link library (DLL). Such files are considered executable files for almost all purposes, although they cannot be directly run. */
-	IMAGE_FILE_UP_SYSTEM_ONLY       = 0x4000, /* The file should be run only on a uniprocessor machine. */
-	IMAGE_FILE_BYTES_REVERSED_HI    = 0x8000  /* Deprecated: Big endian - the MSB precedes the LSB in memory. */
+	PE32_CHARACTERISTIC_RELOCS_STRIPPED       = 0x0001, /* File does not contain base relocations. */
+	PE32_CHARACTERISTIC_EXECUTABLE_IMAGE      = 0x0002, /* File is valid and can be run. */
+	PE32_CHARACTERISTIC_LINE_NUMS_STRIPPED    = 0x0004, /* Deprecated: COFF line numbers have been removed. */
+	PE32_CHARACTERISTIC_LOCAL_SYMS_STRIPPED   = 0x0008, /* Deprecated: COFF symbol table entries for local symbols have been removed. */
+	PE32_CHARACTERISTIC_AGGRESSIVE_WS_TRIM    = 0x0010, /* Obsolete: Aggressively trim working set. */
+	PE32_CHARACTERISTIC_LARGE_ADDRESS_AWARE   = 0x0020, /* Application can handle > 2-GB addresses. */
+	PE32_CHARACTERISTIC_RESERVED_0040         = 0x0040, /* Reserved for future use. */
+	PE32_CHARACTERISTIC_BYTES_REVERSED_LO     = 0x0080, /* Deprecated: Little endian - the least significant bit (LSB) precedes the most significant bit (MSB) in memory. */
+	PE32_CHARACTERISTIC_32BIT_MACHINE         = 0x0100, /* Machine is based on a 32-bit-word architecture. */
+	PE32_CHARACTERISTIC_DEBUG_STRIPPED        = 0x0200, /* Debugging information is removed from the image file. */
+	PE32_CHARACTERISTIC_REMOVABLE_RUN_FROM_SWAP = 0x0400, /* If the image is on removable media, fully load it and copy it to the swap file. */
+	PE32_CHARACTERISTIC_NET_RUN_FROM_SWAP     = 0x0800, /* If the image is on network media, fully load it and copy it to the swap file. */
+	PE32_CHARACTERISTIC_SYSTEM               = 0x1000, /* The image file is a system file, not a user program. */
+	PE32_CHARACTERISTIC_DLL                  = 0x2000, /* The image file is a dynamic-link library (DLL). Such files are considered executable files for almost all purposes, although they cannot be directly run. */
+	PE32_CHARACTERISTIC_UP_SYSTEM_ONLY       = 0x4000, /* The file should be run only on a uniprocessor machine. */
+	PE32_CHARACTERISTIC_BYTES_REVERSED_HI    = 0x8000  /* Deprecated: Big endian - the MSB precedes the LSB in memory. */
 };
 
 static struct pe32_image_characteristics_map {
 	int index;
 	char *str;
 } pe32_characteristics_map[] = {
-	{ IMAGE_FILE_RELOCS_STRIPPED, "Stripped" },
-	{ IMAGE_FILE_EXECUTABLE_IMAGE, "Valid Executable" },
-	{ IMAGE_FILE_LINE_NUMS_STRIPPED, "COFF line nums are stripped" },
-	{ IMAGE_FILE_LOCAL_SYMS_STRIPPED, "COFF table entries are stripped" },
-	{ IMAGE_FILE_AGGRESSIVE_WS_TRIM, "Agressively trim working set" },
-	{ IMAGE_FILE_LARGE_ADDRESS_AWARE, "Can handle > 2GB adresses" },
-	{ IMAGE_FILE_RESERVED_0040, "" },
-	{ IMAGE_FILE_BYTES_REVERSED_LO, "Little endian" },
-	{ IMAGE_FILE_32BIT_MACHINE, "Based on 32 bit word architecture" },
-	{ IMAGE_FILE_DEBUG_STRIPPED, "Debug info is stripped" },
-	{ IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP, "Copy image to swap if it is on removable media" },
-	{ IMAGE_FILE_NET_RUN_FROM_SWAP, "If the image is on network media, fully load it and copy it to the swap file." },
-	{ IMAGE_FILE_SYSTEM, "System file" },
-	{ IMAGE_FILE_DLL, "DLL file" },
-	{ IMAGE_FILE_UP_SYSTEM_ONLY, "Uniprocessor machine only" },
-	{ IMAGE_FILE_BYTES_REVERSED_HI, "Big endian" },
+	{ PE32_CHARACTERISTIC_RELOCS_STRIPPED, "Stripped" },
+	{ PE32_CHARACTERISTIC_EXECUTABLE_IMAGE, "Valid Executable" },
+	{ PE32_CHARACTERISTIC_LINE_NUMS_STRIPPED, "COFF line nums are stripped" },
+	{ PE32_CHARACTERISTIC_LOCAL_SYMS_STRIPPED, "COFF table entries are stripped" },
+	{ PE32_CHARACTERISTIC_AGGRESSIVE_WS_TRIM, "Agressively trim working set" },
+	{ PE32_CHARACTERISTIC_LARGE_ADDRESS_AWARE, "Can handle > 2GB adresses" },
+	{ PE32_CHARACTERISTIC_RESERVED_0040, "" },
+	{ PE32_CHARACTERISTIC_BYTES_REVERSED_LO, "Little endian" },
+	{ PE32_CHARACTERISTIC_32BIT_MACHINE, "Based on 32 bit word architecture" },
+	{ PE32_CHARACTERISTIC_DEBUG_STRIPPED, "Debug info is stripped" },
+	{ PE32_CHARACTERISTIC_REMOVABLE_RUN_FROM_SWAP, "Copy image to swap if it is on removable media" },
+	{ PE32_CHARACTERISTIC_NET_RUN_FROM_SWAP, "If the image is on network media, fully load it and copy it to the swap file." },
+	{ PE32_CHARACTERISTIC_SYSTEM, "System file" },
+	{ PE32_CHARACTERISTIC_DLL, "DLL file" },
+	{ PE32_CHARACTERISTIC_UP_SYSTEM_ONLY, "Uniprocessor machine only" },
+	{ PE32_CHARACTERISTIC_BYTES_REVERSED_HI, "Big endian" },
+};
+
+enum pe32_subsystem {
+	PE32_SUBSYSTEM_UNKNOWN                 = 0,  /* An unknown subsystem */
+	PE32_SUBSYSTEM_NATIVE                  = 1,  /* Device drivers and native Windows processes */
+	PE32_SUBSYSTEM_WINDOWS_GUI             = 2,  /* The Windows graphical user interface (GUI) subsystem */
+	PE32_SUBSYSTEM_WINDOWS_CUI             = 3,  /* The Windows character subsystem */
+	PE32_SUBSYSTEM_OS2_CUI                 = 5,  /* The OS/2 character subsystem */
+	PE32_SUBSYSTEM_POSIX_CUI               = 7,  /* The Posix character subsystem */
+	PE32_SUBSYSTEM_NATIVE_WINDOWS          = 8,  /* Native Win9x driver */
+	PE32_SUBSYSTEM_WINDOWS_CE_GUI          = 9,  /* Windows CE */
+	PE32_SUBSYSTEM_EFI_APPLICATION         = 10, /* An Extensible Firmware Interface (EFI) application */
+	PE32_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER = 11, /* An EFI driver with boot services */
+	PE32_SUBSYSTEM_EFI_RUNTIME_DRIVER      = 12, /* An EFI driver with run-time services */
+	PE32_SUBSYSTEM_EFI_ROM                 = 13, /* An EFI ROM image */
+	PE32_SUBSYSTEM_XBOX                    = 14, /* XBOX */
+	PE32_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16  /* Windows boot application */
+};
+
+static struct pe32_subsystem_str_map {
+	int index;
+	char *str;
+} pe32_subsystem_map[] = {
+	{ PE32_SUBSYSTEM_UNKNOWN, "Unknown subsystem" },
+	{ PE32_SUBSYSTEM_NATIVE, "Native"},
+	{ PE32_SUBSYSTEM_WINDOWS_GUI, "GUI"},
+	{ PE32_SUBSYSTEM_WINDOWS_CUI, "CUI character" },
+	{ PE32_SUBSYSTEM_OS2_CUI, "OS/2 character"},
+	{ PE32_SUBSYSTEM_POSIX_CUI, "POSIX character" },
+	{ PE32_SUBSYSTEM_NATIVE_WINDOWS, "Native Win9x driver" },
+	{ PE32_SUBSYSTEM_WINDOWS_CE_GUI, "Windows CE" },
+	{ PE32_SUBSYSTEM_EFI_APPLICATION, "EFI" },
+	{ PE32_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER, "EFI boot service"},
+	{ PE32_SUBSYSTEM_EFI_RUNTIME_DRIVER, "EFI runtime service"},
+	{ PE32_SUBSYSTEM_EFI_ROM, "EFI ROM image" },
+	{ PE32_SUBSYSTEM_XBOX, "XBOX"},
+	{ PE32_SUBSYSTEM_WINDOWS_BOOT_APPLICATION, "Windows boot"},
 };
 
 #define FILE_FORMAT_PE32_SIGNATURE_EXISTS 0x00004550
 
 int pe32_does_signature_exist(char *data);
+
 const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type);
 const char* pe32_get_characteristics_string(enum pe32_image_characteristics machine_type);
+const char* pe32_get_subsystem_string(enum pe32_subsystem machine_type);
+
 int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit);
 pe32_header *pe32_get_header(void *data);
 pe32_optional_header *pe32_get_optional_header(void *data);
@@ -595,6 +645,17 @@ const char* pe32_get_characteristics_string(enum pe32_image_characteristics mach
 	}
 	return "Invalid type";
 }
+
+const char* pe32_get_subsystem_string(enum pe32_subsystem machine_type)
+{
+	for (size_t i = 0; i < sizeof(pe32_subsystem_map) / sizeof(pe32_subsystem_map[0]); ++i) {
+		if (pe32_subsystem_map[i].index == machine_type) {
+			return pe32_subsystem_map[i].str;
+		}
+	}
+	return "Invalid type";
+}
+
 
 /**
  * Check if flag is set in pe32_header.characteristics
