@@ -331,7 +331,18 @@ void elf64_swap_bytes(elf32_header *header);
  *================================================*/
 
 typedef struct {
-	uint16_t ident; // 0x010b - PE32, 0x020b - PE32+ (64 bit)
+	uint32_t magic;
+	uint16_t machine;
+	uint16_t number_of_sections;
+	uint32_t time_date_stamp;
+	uint32_t pointer_to_symbol_table;
+	uint32_t number_of_symbols;
+	uint16_t size_of_optional_header;
+	uint16_t characteristics;
+} pe32_header;
+
+typedef struct {
+	uint16_t ident; /* 0x010b - PE32, 0x020b - PE32+ (64 bit) */
 	uint8_t  major_linker_ver;
 	uint8_t  minor_linker_ver;
 	uint32_t code_size;
@@ -361,9 +372,82 @@ typedef struct {
 	uint32_t sizeof_heap_commit;
 	uint32_t laoder_flags;
 	uint32_t numof_rva_and_sizes;
-} pe32_header;
+} pe32_optionalheader;
 
-int pe_does_signature_exist(char *data);
+enum pe32_machine_type {
+	PE32_MACHINE_TYPE_UNKNOWN    = 0x0,    /* The content of this field is assumed to be applicable to any machine type */
+	PE32_MACHINE_TYPE_ALPHA      = 0x184,  /* Alpha AXP, 32-bit address space */
+	PE32_MACHINE_TYPE_ALPHA64    = 0x284,  /* Alpha 64, 64-bit address space */
+	PE32_MACHINE_TYPE_AM33       = 0x1d3,  /* Matsushita AM33 */
+	PE32_MACHINE_TYPE_AMD64      = 0x8664, /* x64 */
+	PE32_MACHINE_TYPE_ARM        = 0x1c0,  /* ARM little endian */
+	PE32_MACHINE_TYPE_ARM64      = 0xaa64, /* ARM64 little endian */
+	PE32_MACHINE_TYPE_ARMNT      = 0x1c4,  /* ARM Thumb-2 little endian */
+	PE32_MACHINE_TYPE_AXP64      = 0x284,  /* AXP 64 (Same as Alpha 64) */
+	PE32_MACHINE_TYPE_EBC        = 0xebc,  /* EFI byte code */
+	PE32_MACHINE_TYPE_I386       = 0x14c,  /* Intel 386 or later processors and compatible processors */
+	PE32_MACHINE_TYPE_IA64       = 0x200,  /* Intel Itanium processor family */
+	PE32_MACHINE_TYPE_LOONGARCH32 = 0x6232,/* LoongArch 32-bit processor family */
+	PE32_MACHINE_TYPE_LOONGARCH64 = 0x6264,/* LoongArch 64-bit processor family */
+	PE32_MACHINE_TYPE_M32R       = 0x9041, /* Mitsubishi M32R little endian */
+	PE32_MACHINE_TYPE_MIPS16     = 0x266,  /* MIPS16 */
+	PE32_MACHINE_TYPE_MIPSFPU    = 0x366,  /* MIPS with FPU */
+	PE32_MACHINE_TYPE_MIPSFPU16  = 0x466,  /* MIPS16 with FPU */
+	PE32_MACHINE_TYPE_POWERPC    = 0x1f0,  /* Power PC little endian */
+	PE32_MACHINE_TYPE_POWERPCFP  = 0x1f1,  /* Power PC with floating point support */
+	PE32_MACHINE_TYPE_R4000      = 0x166,  /* MIPS little endian */
+	PE32_MACHINE_TYPE_RISCV32    = 0x5032, /* RISC-V 32-bit address space */
+	PE32_MACHINE_TYPE_RISCV64    = 0x5064, /* RISC-V 64-bit address space */
+	PE32_MACHINE_TYPE_RISCV128   = 0x5128, /* RISC-V 128-bit address space */
+	PE32_MACHINE_TYPE_SH3        = 0x1a2,  /* Hitachi SH3 */
+	PE32_MACHINE_TYPE_SH3DSP     = 0x1a3,  /* Hitachi SH3 DSP */
+	PE32_MACHINE_TYPE_SH4        = 0x1a6,  /* Hitachi SH4 */
+	PE32_MACHINE_TYPE_SH5        = 0x1a8,  /* Hitachi SH5 */
+	PE32_MACHINE_TYPE_THUMB      = 0x1c2,  /* Thumb */
+	PE32_MACHINE_TYPE_WCEMIPSV2  = 0x169   /* MIPS little-endian WCE v2 */
+};
+
+struct pe32_machine_type_str_map {
+    enum pe32_machine_type machine_type;
+    const char* str;
+};
+
+static struct pe32_machine_type_str_map pe32_machine_type_map[] = {
+	{ PE32_MACHINE_TYPE_UNKNOWN, "Unknown machine type" },
+	{ PE32_MACHINE_TYPE_ALPHA, "Alpha AXP, 32-bit address space" },
+	{ PE32_MACHINE_TYPE_ALPHA64, "Alpha 64, 64-bit address space" },
+	{ PE32_MACHINE_TYPE_AM33, "Matsushita AM33" },
+	{ PE32_MACHINE_TYPE_AMD64, "x64" },
+	{ PE32_MACHINE_TYPE_ARM, "ARM little endian" },
+	{ PE32_MACHINE_TYPE_ARM64, "ARM64 little endian" },
+	{ PE32_MACHINE_TYPE_ARMNT, "ARM Thumb-2 little endian" },
+	{ PE32_MACHINE_TYPE_AXP64, "AXP 64 (Same as Alpha 64)" },
+	{ PE32_MACHINE_TYPE_EBC, "EFI byte code" },
+	{ PE32_MACHINE_TYPE_I386, "Intel 386 or later processors and compatible processor" },
+	{ PE32_MACHINE_TYPE_IA64, "Intel Itanium processor family" },
+	{ PE32_MACHINE_TYPE_LOONGARCH32, "LoongArch 32-bit processor family" },
+	{ PE32_MACHINE_TYPE_LOONGARCH64, "LoongArch 64-bit processor family" },
+	{ PE32_MACHINE_TYPE_M32R, "Mitsubishi M32R little endian" },
+	{ PE32_MACHINE_TYPE_MIPS16, "MIPS16" },
+	{ PE32_MACHINE_TYPE_MIPSFPU, "MIPS with FPU" },
+	{ PE32_MACHINE_TYPE_MIPSFPU16, "MIPS16 with FPU" },
+	{ PE32_MACHINE_TYPE_POWERPC, "Power PC little endian" },
+	{ PE32_MACHINE_TYPE_POWERPCFP, "Power PC with floating point support" },
+	{ PE32_MACHINE_TYPE_R4000, "MIPS little endian" },
+	{ PE32_MACHINE_TYPE_RISCV32, "RISC-V 32-bit address space" },
+	{ PE32_MACHINE_TYPE_RISCV64, "RISC-V 64-bit address space" },
+	{ PE32_MACHINE_TYPE_RISCV128, "RISC-V 128-bit address space" },
+	{ PE32_MACHINE_TYPE_SH3, "Hitachi SH3" },
+	{ PE32_MACHINE_TYPE_SH3DSP, "Hitachi SH3 DSP" },
+	{ PE32_MACHINE_TYPE_SH4, "Hitachi SH4" },
+	{ PE32_MACHINE_TYPE_SH5, "Hitachi SH5" },
+	{ PE32_MACHINE_TYPE_THUMB, "Thumb" },
+	{ PE32_MACHINE_TYPE_WCEMIPSV2, "MIPS little-endian WCE v2" },
+};
+
+#define FILE_FORMAT_PE32_SIGNATURE_EXISTS 0x00004550
+
+int pe32_does_signature_exist(char *data);
 
 enum pe32_index {
 	tmp,
@@ -437,16 +521,34 @@ void elf64_swap_bytes(elf32_header *header)
  * Signature only exists on image files and not object files
  * so this may be used to check the file type as well.
  *
+ * Note that this value can also be checked with pe32_header
+ * struct, the 'magic' value at the struct should be compared
+ * agains FILE_FORMAT_PE32_SIGNATURE_EXISTS
+ *
  * @return {int}: Returns 1 if exists, otherwise 0 is returned.
  */
-int pe_does_signature_exist(char *data)
+int pe32_does_signature_exist(char *data)
 {
-	if (*(uint32_t*)(((uint8_t*)data) + 0xE8) == 0x00004550)
+	if (*(uint32_t*)(((uint8_t*)data) + 0xE8) == FILE_FORMAT_PE32_SIGNATURE_EXISTS)
 		return 1;
 	else
 		return 0;
 }
 
+/**
+ * Get machine type string, this info is
+ * extracted from pe32_header.machine
+ *
+ * return {char*}: Return the corresponding string for machine type
+ */
+const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type) {
+	for (size_t i = 0; i < sizeof(pe32_machine_type_map) / sizeof(pe32_machine_type_map[0]); ++i) {
+		if (pe32_machine_type_map[i].machine_type == machine_type) {
+			return pe32_machine_type_map[i].str;
+		}
+	}
+	return "Unknown"; // Return a default string if the enum value is not found in the map
+}
 
 /* Determine if file link format */
 int determine_link_format(char *data)
