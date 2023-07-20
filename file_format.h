@@ -448,6 +448,7 @@ static struct pe32_machine_type_str_map pe32_machine_type_map[] = {
 #define FILE_FORMAT_PE32_SIGNATURE_EXISTS 0x00004550
 
 int pe32_does_signature_exist(char *data);
+const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type);
 
 enum pe32_index {
 	tmp,
