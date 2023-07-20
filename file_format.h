@@ -13,7 +13,7 @@
  *================================================*/
 
 typedef struct {
-	unsigned char	e_ident[16];	/* Magic number and other info */
+	unsigned char	ident[16];	/* Magic number and other info */
 	uint16_t	type;		/* Object file type */
 	uint16_t	isa;		/* Architecture */
 	uint32_t	version;	/* Object file version */
@@ -53,7 +53,7 @@ typedef struct {
  */
 #ifndef FILE_FORMAT_ELF_DISABLE_MAP_STR_STRUCT
 static struct {
-	unsigned char	e_ident[16];
+	unsigned char	ident[16];
 	char*	type[10];
 	char*	isa[79];
 	uint32_t	version;
@@ -316,6 +316,7 @@ enum elf_version {
 
 enum header_type {
 	HEADER_FORMAT_ELF,
+	HEADER_FORMAT_PE32,
 	HEADER_FORMAT_UNKNOWN,
 };
 void elf32_swap_bytes(elf32_header *header);
@@ -324,14 +325,50 @@ void elf64_swap_bytes(elf32_header *header);
 /*==================================================
  *                                                 *
  *                                                 *
- *                PE32+ Format Begin               *
+ *                PE32 Format Begin                *
  *                                                 *
  *                                                 *
  *================================================*/
 
-enum pe32_index {
+typedef struct {
+	uint16_t ident; // 0x010b - PE32, 0x020b - PE32+ (64 bit)
+	uint8_t  major_linker_ver;
+	uint8_t  minor_linker_ver;
+	uint32_t code_size;
+	uint32_t initialized_data_size;
+	uint32_t uninitialized_data_size;
+	uint32_t entry_point_address;
+	uint32_t base_of_code;
+	uint32_t base_of_data;
+	uint32_t image_base;
+	uint32_t section_alignement;
+	uint32_t file_alignement;
+	uint16_t major_operating_system_ver;
+	uint16_t minor_operating_system_ver;
+	uint16_t major_image_ver;
+	uint16_t minor_image_ver;
+	uint16_t major_subsystem_ver;
+	uint16_t minor_subsystem_ver;
+	uint32_t win32_ver_value;
+	uint32_t sizeof_image;
+	uint32_t sizeof_headers;
+	uint32_t checksum;
+	uint16_t subsystem;
+	uint16_t dll_characteristics;
+	uint32_t sizeof_stack_reserve;
+	uint32_t sizeof_stack_commit;
+	uint32_t sizeof_heap_reserve;
+	uint32_t sizeof_heap_commit;
+	uint32_t laoder_flags;
+	uint32_t numof_rva_and_sizes;
+} pe32_header;
 
+int pe_does_signature_exist(char *data);
+
+enum pe32_index {
+	tmp,
 };
+
 
 int determine_link_format(char *data);
 
@@ -395,6 +432,22 @@ void elf64_swap_bytes(elf32_header *header)
 	header->shstrndx = __swap_uint16(header->shstrndx);
 }
 
+/**
+ * Check if signature bytes PE\0\0 exist at index 0x3c
+ * Signature only exists on image files and not object files
+ * so this may be used to check the file type as well.
+ *
+ * @return {int}: Returns 1 if exists, otherwise 0 is returned.
+ */
+int pe_does_signature_exist(char *data)
+{
+	if (*(uint32_t*)(((uint8_t*)data) + 0xE8) == 0x00004550)
+		return 1;
+	else
+		return 0;
+}
+
+
 /* Determine if file link format */
 int determine_link_format(char *data)
 {
@@ -402,6 +455,9 @@ int determine_link_format(char *data)
 	   data[2] == 'L' && data[3] == 'F') {
 		return HEADER_FORMAT_ELF;
 	}
+
+	if ((data[0] == 'M') && (data[1] == 'Z'))
+		return HEADER_FORMAT_PE32;
 
 	return HEADER_FORMAT_UNKNOWN;
 }
