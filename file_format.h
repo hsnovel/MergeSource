@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/*==================================================
+ *                                                 *
+ *                                                 *
+ *                ELF Format Begin                 *
+ *                                                 *
+ *                                                 *
+ *================================================*/
+
 typedef struct {
 	unsigned char	e_ident[16];	/* Magic number and other info */
 	uint16_t	type;		/* Object file type */
@@ -310,9 +318,21 @@ enum header_type {
 	HEADER_FORMAT_ELF,
 	HEADER_FORMAT_UNKNOWN,
 };
-
 void elf32_swap_bytes(elf32_header *header);
 void elf64_swap_bytes(elf32_header *header);
+
+/*==================================================
+ *                                                 *
+ *                                                 *
+ *                PE32+ Format Begin               *
+ *                                                 *
+ *                                                 *
+ *================================================*/
+
+enum pe32_index {
+
+};
+
 int determine_link_format(char *data);
 
 #endif /* FILE_FORMAT_H */
