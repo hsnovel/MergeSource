@@ -218,6 +218,19 @@ void xutil_deinit_threads(void);
 #endif /* XUTIL_WINDOWS*/
 
 /**
+ * Check cpu endianness
+ * @return {int}: return 1 if little endian, otherwise return 0 for big endian
+ */
+int xutil_is_little_endian()
+{
+	int n = 1;
+	if(*(char *)&n == 1)
+		return 1;
+	else
+		return 0;
+}
+
+/**
  * This function should be called as the first thing before calling any other
  * function from xutil.h, altough not all functions are dependening on config
  * from this initilization some do and if this is not called program will
@@ -624,6 +637,9 @@ int xutil_delete_file(char *path)
  *	XUTIL_ERROR_ALLOCATING_SPACE
  *	XUTIL_ERROR_READING_FILE
  * error codes are returned.
+ *
+ * @Refactor: This function currently does not read binary files
+ * in linux, need to revise
  */
 int xutil_read_file(char *path, char **buf)
 {
