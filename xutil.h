@@ -1,6 +1,16 @@
 #ifndef XUTIL_H
 #define XUTIL_H
 
+/* xutil is a simple platform layer abstraction for windows and unix based platforms, this library is
+ not finished so there may be some bugs, use it at your own risk !*/
+
+/*
+  TODO:
+  Mutex Support
+  Select file with a window
+  Async io
+ */
+
 /*
  * All defines that can be turned on or off:
  *
