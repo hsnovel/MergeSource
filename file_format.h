@@ -547,7 +547,7 @@ const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type) {
 			return pe32_machine_type_map[i].str;
 		}
 	}
-	return "Unknown"; // Return a default string if the enum value is not found in the map
+	return "Invalid type";
 }
 
 /* Determine if file link format */
