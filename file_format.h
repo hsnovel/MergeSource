@@ -341,8 +341,10 @@ typedef struct {
 	uint16_t characteristics;
 } pe32_header;
 
+#define PE32 0x010b
+#define PE32PLUS 0x020b
 typedef struct {
-	uint16_t ident; /* 0x010b - PE32, 0x020b - PE32+ (64 bit) */
+	uint16_t ident; /* Is set to either PE32(32 bit) or PE32PLUS(64 bit) */
 	uint8_t  major_linker_ver;
 	uint8_t  minor_linker_ver;
 	uint32_t code_size;
@@ -372,7 +374,7 @@ typedef struct {
 	uint32_t sizeof_heap_commit;
 	uint32_t laoder_flags;
 	uint32_t numof_rva_and_sizes;
-} pe32_optionalheader;
+} pe32_optional_header;
 
 enum pe32_machine_type {
 	PE32_MACHINE_TYPE_UNKNOWN    = 0x0,    /* The content of this field is assumed to be applicable to any machine type */
@@ -492,11 +494,8 @@ int pe32_does_signature_exist(char *data);
 const char* pe32_get_machine_type_string(enum pe32_machine_type machine_type);
 const char* pe32_get_characteristics_string(enum pe32_image_characteristics machine_type);
 int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit);
-
-enum pe32_index {
-	tmp,
-};
-
+pe32_header *pe32_get_header(void *data);
+pe32_optional_header *pe32_get_optional_header(void *data);
 
 int determine_link_format(char *data);
 
@@ -609,9 +608,19 @@ const char* pe32_get_characteristics_string(enum pe32_image_characteristics mach
  *
  * return {int}: Return 1 if flag is set, otherwise return 0.
  */
-int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit)
+inline int pe32_is_flag_set(uint16_t characteristics, enum pe32_image_characteristics bit)
 {
 	return !!(characteristics & bit);
+}
+
+pe32_header *pe32_get_header(void *data)
+{
+	return (pe32_header*)(((uint8_t*)data) + 0xE8);
+}
+
+pe32_optional_header *pe32_get_optional_header(void *data)
+{
+	return (pe32_optional_header*)((uint8_t*)pe32_get_header(data) + sizeof(pe32_header));
 }
 
 /* Determine if file link format */
