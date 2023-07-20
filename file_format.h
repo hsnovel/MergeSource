@@ -38,6 +38,12 @@ typedef struct {
 	uint16_t	shstrndx;	/* Section header string table index */
 } elf64_header;
 
+/*
+ * These will get quite big once we start to have other formats, so it might
+ * might be a good idea to have disable directive for people who are using
+ * this library at a limited resource machine
+ */
+#ifndef FILE_FORMAT_ELF_DISABLE_MAP_STR_STRUCT
 static struct {
 	unsigned char	e_ident[16];
 	char*	type[10];
@@ -148,6 +154,7 @@ static struct {
 	.isa[77] = "WDC 65C816",
 	.isa[78] = "or future use",
 };
+#endif /* FILE_FORMAT_ELF_DISABLE_MAP_STR_STRUCT */
 
 enum elf_index{
 	ELF_INDEX_ARCH = 4,
