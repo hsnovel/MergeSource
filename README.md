@@ -1,3 +1,5 @@
+# [THIS PROJECT MOVED TO STD](https://github.com/xcatalyst/std)
+
 ## MergeSource
 
 A repository containing list single header utility libraries for C and C++.
